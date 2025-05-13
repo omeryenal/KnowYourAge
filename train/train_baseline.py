@@ -42,8 +42,15 @@ criterion = nn.MSELoss()
 mae_loss = nn.L1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.0005)
 
+# Scheduler & early stopping
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer, mode='min', factor=0.5, patience=3, 
+)
+early_stop_counter = 0
+early_stop_patience = 5
+
 # Eğitim döngüsü
-EPOCHS = 20
+EPOCHS = 50
 best_mae = float("inf")
 
 for epoch in range(EPOCHS):
@@ -74,12 +81,19 @@ for epoch in range(EPOCHS):
             val_mae += mae.item()
 
     val_mae_epoch = val_mae / len(val_loader)
+    scheduler.step(val_mae_epoch)
 
-    # Eğer bu epoch en iyi ise modeli kaydet
     if val_mae_epoch < best_mae:
         best_mae = val_mae_epoch
         torch.save(model.state_dict(), MODEL_PATH)
         print(f"✅ Best model saved at epoch {epoch+1} with Val MAE: {best_mae:.2f}")
+        early_stop_counter = 0
+    else:
+        early_stop_counter += 1
+        print(f"⚠️ No improvement. Early stop patience: {early_stop_counter}/{early_stop_patience}")
+        if early_stop_counter >= early_stop_patience:
+            print("🛑 Early stopping triggered.")
+            break
 
     print(f"Epoch {epoch+1}/{EPOCHS} | Train Loss: {train_loss/len(train_loader):.2f} | "
           f"Val Loss: {val_loss/len(val_loader):.2f} | Val MAE: {val_mae_epoch:.2f}")

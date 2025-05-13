@@ -4,4 +4,4 @@ __pycache__/
 *.tar.gz
 *.zip
 data/
-chechkpoints/
+checkpoints/
