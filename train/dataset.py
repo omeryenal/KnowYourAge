@@ -1,8 +1,5 @@
-# train/dataset.py
-
 import os
 import torch
-
 from PIL import Image
 from torch.utils.data import Dataset
 import torchvision.transforms as transforms
@@ -13,7 +10,6 @@ class UTKFaceDataset(Dataset):
         self.transform = transform
         self.image_paths = []
 
-        # Tüm part klasörlerini tara
         for part in os.listdir(root_dir):
             part_path = os.path.join(root_dir, part)
             if not os.path.isdir(part_path):
@@ -33,4 +29,3 @@ class UTKFaceDataset(Dataset):
         if self.transform:
             image = self.transform(image)
         return image, torch.tensor(age, dtype=torch.float32)
-

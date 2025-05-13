@@ -1,7 +1,6 @@
 import os
 import matplotlib.pyplot as plt
 
-# Tüm part klasörlerini gez
 BASE_DIR = "../data/UTKFace"
 ages = []
 
@@ -18,8 +17,7 @@ for part_name in os.listdir(BASE_DIR):
             except Exception as e:
                 print(f"Skipping {filename}: {e}")
 
-# Yaş histogramı
-plt.figure(figsize=(10,6))
+plt.figure(figsize=(10, 6))
 plt.hist(ages, bins=range(0, 101, 5), edgecolor='black')
 plt.title("Age Distribution in UTKFace (All Parts)")
 plt.xlabel("Age")
