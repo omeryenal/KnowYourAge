@@ -1,7 +1,27 @@
+# Sanal ortam
 venv/
+
+# Python bytecode
 __pycache__/
 *.pyc
+
+# Paketler
 *.tar.gz
 *.zip
+
+# Veri ve model ağırlıkları
 data/
 checkpoints/
+
+# macOS gizli dosyaları
+.DS_Store
+
+# IDE/Editor ayarları
+.vscode/
+.idea/
+
+# Ortam değişkenleri
+.env
+
+# Log dosyaları
+*.log
