@@ -1,35 +1,44 @@
-from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import JSONResponse
+from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
 import torch
 from torchvision import transforms
 from PIL import Image
 import io
+import base64
 import os
 import sys
 
+# Model import
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 from model.baseline import AgeRegressionCNN
 
-# 🚀 App başlat
+# ⚙️ Device (M2 Max uyumlu)
+device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+
+# 🎯 FastAPI app
 app = FastAPI()
 
-# 🧠 Model yükle
-device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+# 📦 Model yükle
 model = AgeRegressionCNN().to(device)
 model.load_state_dict(torch.load("checkpoints/best_model.pt", map_location=device))
 model.eval()
 
-# 🔄 Görsel için transform
+# 🔁 Transform
 transform = transforms.Compose([
     transforms.Resize((64, 64)),
     transforms.ToTensor(),
     transforms.Normalize([0.5]*3, [0.5]*3)
 ])
 
+# 📥 Base64 veri modeli
+class ImagePayload(BaseModel):
+    image_base64: str
+
 @app.post("/predict")
-async def predict_age(file: UploadFile = File(...)):
+def predict_base64(payload: ImagePayload):
     try:
-        image_data = await file.read()
+        # Base64 çözümle
+        image_data = base64.b64decode(payload.image_base64)
         image = Image.open(io.BytesIO(image_data)).convert("RGB")
         image = transform(image).unsqueeze(0).to(device)
 
@@ -37,7 +46,7 @@ async def predict_age(file: UploadFile = File(...)):
             output = model(image)
             predicted_age = output.item()
 
-        return JSONResponse(content={"predicted_age": round(predicted_age, 2)})
-    
+        return {"predicted_age": round(predicted_age, 2)}
+
     except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+        raise HTTPException(status_code=500, detail=str(e))
