@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>KnowYourAge</title>
+  <style>
+    body { font-family: sans-serif; text-align: center; margin: 30px; }
+    video { border: 2px solid #333; border-radius: 10px; }
+    #age { font-size: 24px; margin-top: 20px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>KnowYourAge</h1>
+  <video id="webcam" autoplay playsinline width="320" height="240"></video>
+  <div id="age">Waiting for prediction...</div>
+
+  <script>
+    const video = document.getElementById('webcam');
+    const ageDisplay = document.getElementById('age');
+
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(err => {
+        console.error("Camera error:", err);
+        ageDisplay.textContent = "Unable to access the camera.";
+      });
+
+    setInterval(async () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, 64, 64);
+        const base64Image = canvas.toDataURL('image/jpeg').split(',')[1];
+
+        const response = await fetch('http://localhost:8000/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ image_base64: base64Image })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          ageDisplay.textContent = `You look ${data.predicted_age} years old`;
+        } else {
+          ageDisplay.textContent = `API error: ${data.detail}`;
+        }
+      } catch (error) {
+        console.error("Prediction error:", error);
+        ageDisplay.textContent = "Prediction failed.";
+      }
+    }, 5000);
+  </script>
+</body>
+</html>
