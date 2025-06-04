@@ -17,13 +17,11 @@ from .face_utils import detect_and_crop_face
 # Initialize FastAPI app
 app = FastAPI()
 
-# Configure CORS
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
-ADMIN_URL = os.getenv("ADMIN_URL", "http://localhost:3001")
-
+# ✅ Allow all origins for now (Render deployment)
+# Optional: restrict to frontend domain if known
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[FRONTEND_URL, ADMIN_URL],
+    allow_origins=["*"],  # or use exact domains: ["https://your-frontend.onrender.com"]
     allow_credentials=False,
     allow_methods=["POST"],
     allow_headers=["Content-Type"],
