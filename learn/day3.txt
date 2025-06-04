@@ -1,6 +1,0 @@
-Epoch 1/5, Loss: 375.7496
-Epoch 2/5, Loss: 326.2332
-Epoch 3/5, Loss: 306.8706
-Epoch 4/5, Loss: 291.6559
-Epoch 5/5, Loss: 275.8636
-True age: 57.0 | Predicted age: 32.15

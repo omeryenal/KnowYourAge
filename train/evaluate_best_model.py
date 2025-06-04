@@ -4,17 +4,17 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import torch
 from dataset import UTKFaceDataset
-from model.baseline import AgeRegressionCNN
+from model.deep_cnn import DeepAgeCNN
 from torch.utils.data import DataLoader
 import torchvision.transforms as transforms
 
 # 🔧 Ayarlar
-MODEL_PATH = "checkpoints/best_model.pt"
+MODEL_PATH = "checkpoints/deep_model.pt"
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data", "UTKFace")
 
 # 📦 Dataset & Transform
 transform = transforms.Compose([
-    transforms.Resize((64, 64)),
+    transforms.Resize((128, 128)),
     transforms.ToTensor(),
     transforms.Normalize(mean=[0.5]*3, std=[0.5]*3)
 ])
@@ -25,18 +25,20 @@ val_loader = DataLoader(val_dataset, batch_size=1, shuffle=True)
 
 # 🔄 Model yükle
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-model = AgeRegressionCNN().to(device)
+model = DeepAgeCNN().to(device)
 model.load_state_dict(torch.load(MODEL_PATH, map_location=device))
 model.eval()
 
-# 🔍 Örnek tahmin (evaluate_best_model.py içinde)
+
 with torch.no_grad():
     for i, (images, ages) in enumerate(val_loader):
         images = images.to(device)
         outputs = model(images)
-        predicted_age = outputs.item()
-        print(f"🎯 True age: {ages.item()} | 🧠 Predicted age: {predicted_age:.2f}")
+
+        true_age = ages.item() * 100
+        predicted_age = outputs.item() * 100
+
+        print(f"🎯 True age: {true_age:.0f} | 🧠 Predicted age: {predicted_age:.0f}")
 
         if i == 10:
             break
-

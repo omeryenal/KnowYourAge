@@ -1,52 +1,75 @@
-from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel
-import torch
-from torchvision import transforms
-from PIL import Image
-import io
-import base64
 import os
 import sys
+import io
+import base64
 
-# Model import
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from model.baseline import AgeRegressionCNN
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from PIL import Image
 
-# ⚙️ Device (M2 Max uyumlu)
-device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+import torch
 
-# 🎯 FastAPI app
+# 🔁 Relative imports for utils inside api/
+from .model_utils import load_model, preprocess_image
+from .face_utils import detect_and_crop_face
+
+# Initialize FastAPI app
 app = FastAPI()
 
-# 📦 Model yükle
-model = AgeRegressionCNN().to(device)
-model.load_state_dict(torch.load("checkpoints/best_model.pt", map_location=device))
-model.eval()
+# Configure CORS
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
+ADMIN_URL = os.getenv("ADMIN_URL", "http://localhost:3001")
 
-# 🔁 Transform
-transform = transforms.Compose([
-    transforms.Resize((64, 64)),
-    transforms.ToTensor(),
-    transforms.Normalize([0.5]*3, [0.5]*3)
-])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[FRONTEND_URL, ADMIN_URL],
+    allow_credentials=False,
+    allow_methods=["POST"],
+    allow_headers=["Content-Type"],
+)
 
-# 📥 Base64 veri modeli
+# Load model and device once at startup
+model, device = load_model()
+
+# Request body schema
 class ImagePayload(BaseModel):
-    image_base64: str
+    image_base64: str  # base64-encoded image string
 
 @app.post("/predict")
 def predict_base64(payload: ImagePayload):
+    """
+    Accepts a base64-encoded image, detects the face,
+    and returns the predicted age as JSON.
+
+    Example Request:
+        {
+            "image_base64": "<base64 string>"
+        }
+
+    Response:
+        {
+            "predicted_age": 25
+        }
+    """
     try:
-        # Base64 çözümle
+        # Decode base64 and convert to PIL
         image_data = base64.b64decode(payload.image_base64)
         image = Image.open(io.BytesIO(image_data)).convert("RGB")
-        image = transform(image).unsqueeze(0).to(device)
 
+        # Crop face
+        face_image = detect_and_crop_face(image)
+
+        # Preprocess and predict
+        image_tensor = preprocess_image(face_image).to(device)
         with torch.no_grad():
-            output = model(image)
-            predicted_age = output.item()
+            age_pred = model(image_tensor)
+            predicted_age = int(age_pred.item())
 
-        return {"predicted_age": round(predicted_age, 2)}
+        return {"predicted_age": predicted_age}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+# Run via: uvicorn api.main:app --reload

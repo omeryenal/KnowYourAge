@@ -10,7 +10,7 @@ import torchvision.transforms as transforms
 
 
 # 🔧 Ayarlar
-MODEL_PATH = "checkpoints/best_model.pt"
+MODEL_PATH = "checkpoints/deep_model.pt"
 DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "UTKFace")
 
 # 🧼 Transformlar
